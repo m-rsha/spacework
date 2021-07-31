@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 clap = "~3.0.0-beta.2"
-# chrono = "0.4.19"
+chrono = "0.4.19"
