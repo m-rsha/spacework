@@ -33,10 +33,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opts = app.get_matches_mut();
 
     if let Some(opts) = opts.subcommand_matches("new") {
-        let _sw = Spacework::from_options(
+        let sw = Spacework::from_options(
             opts.value_of("name"),
             opts.value_of("language"),
         )?;
+        sw.create()?;
         return Ok(());
     }
 
