@@ -52,7 +52,10 @@ impl Spacework {
         name: Option<&str>,
         language: Option<&str>
     ) -> Result<Self, Box<dyn Error>> {
-        let name = name.unwrap();
+        let name = match name {
+            Some(name) => name,
+            None => return Err("Name required".into()),
+        };
         let language = match language {
             Some(language) => match language {
                 "c" => Language::C,
@@ -147,19 +150,11 @@ impl Spacework {
     }
     
     pub fn compile() -> Result<process::Output, Box<dyn Error>> {
-        let cwd = env::current_dir()?;
-        if !Spacework::is_inside_workspace(&cwd)? {
+        if !Spacework::is_inside_workspace()? {
             return Err("Not inside a `spacework` workspace.".into());
         }
         let lang = Spacework::get_language()?;
         eprintln!("We have a {:?} file!", lang);
-/*
-        match lang {
-            Language::CPP => compile_cpp(),
-            Language::C => compile_c(),
-            Language::None => (),
-        }
-*/
 
         let args = ["-std=c++20", "src/main.cpp", "-o", "bin/testing"];
         let cmd = process::Command::new("g++").args(&args).output()?;
@@ -191,8 +186,11 @@ impl Spacework {
         Err("No compilable files found.".into())
     }
 
-    fn is_inside_workspace(cwd: &Path) -> Result<bool, Box<dyn Error>> {
-        Ok(cwd.starts_with(Spacework::workspace_home()?))
+    fn is_inside_workspace() -> Result<bool, Box<dyn Error>> {
+        Ok(
+            env::current_dir()?
+                .starts_with(Spacework::workspace_home()?)
+        )
     }
 
     fn workspace_home() -> Result<PathBuf, Box<dyn Error>> {
