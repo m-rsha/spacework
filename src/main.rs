@@ -53,13 +53,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if opts.is_present("history") {
-        Spacework::print_history()?;
+        print_history()?;
         return Ok(());
     }
 
     // If no commands are given, we show help.
     // Also see `App.print_long_help()?`
-    app.print_help()?;
+    // app.print_help()?;
+    
+    let cpp = Language::CPP;
+    cpp.compile()?;
 
     Ok(())
 }

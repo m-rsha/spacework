@@ -5,9 +5,9 @@ use std::{
     fs::{File, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
-    process,
+    process::{Output, Command},
     str,
-    os::unix::ffi::OsStrExt,
+    // os::unix::ffi::OsStrExt,
 };
 use chrono::prelude::*;
 
@@ -20,9 +20,44 @@ pub struct Spacework {
 
 #[derive(Debug, PartialEq)]
 pub enum Language {
-    CPP,
     C,
+    CPP,
     Python,
+}
+
+impl Language {
+    pub fn compile(&self) -> Result<Output, Box<dyn Error>> {
+        match self {
+            Language::C => self.compile_c(),
+            Language::CPP => self.compile_cpp(),
+            Language::Python => self.compile_python(),
+        }
+    }
+
+    fn compile_cpp(&self) -> Result<Output, Box<dyn Error>> {
+        let compiler = "g++";
+        let args = ["-std=c++20", "src/main.cpp", "-o", "bin/testing"];
+        let cmd = Command::new(compiler)
+            .args(&args)
+            .output()?;
+        Ok(cmd)
+    }
+
+    fn compile_c(&self) -> Result<Output, Box<dyn Error>> {
+        let compiler = "gcc";
+        let args = ["-std=c++20", "src/main.cpp", "-o", "bin/testing"];
+        let cmd = Command::new(compiler)
+            .args(&args)
+            .output()?;
+        Ok(cmd)
+    }
+    
+    fn compile_python(&self) -> Result<Output, Box<dyn Error>> {
+        Err(
+            "Unable to compile python; try `spacework run` instead."
+            .into()
+        )
+    }
 }
 
 impl Spacework {
@@ -108,9 +143,9 @@ impl Spacework {
         // Populate the `src` dir with a language-specific hello world file
         // similar to `cargo new`
         let main_file = match self.language {
-            Language::CPP => "main.cpp",
             Language::C => "main.c",
-            _ => panic!("how tf"),
+            Language::CPP => "main.cpp",
+            Language::Python => "main.py",
         };
         File::create(&src_dir.join(main_file))?; // And log it? idk.
         Ok(())
@@ -136,68 +171,67 @@ impl Spacework {
         Ok(())
     }
     
-    pub fn print_history() -> Result<(), Box<dyn Error>> {
-        // TODO:
-        // Print last few items.
-        // Print specific actions, such as last n creations.
-        let file = fs::read_to_string(
-            env::var("HOME")?
-            .parse::<PathBuf>()?
-            .join(".spacework_history")
-        )?;
-        print!("{}", &file);
-        Ok(())
-    }
-    
-    pub fn compile() -> Result<process::Output, Box<dyn Error>> {
-        if !Spacework::is_inside_workspace()? {
+    pub fn compile() -> Result<Output, Box<dyn Error>> {
+        if !is_inside_workspace()? {
             return Err("Not inside a `spacework` workspace.".into());
         }
         let lang = Spacework::get_language()?;
         eprintln!("We have a {:?} file!", lang);
-
-        let args = ["-std=c++20", "src/main.cpp", "-o", "bin/testing"];
-        let cmd = process::Command::new("g++").args(&args).output()?;
-        Ok(cmd)
+        lang.compile()
     }
-
+    
     fn get_language() -> Result<Language, Box<dyn Error>> {
-        let mut file_paths = Vec::new();
-        for file in fs::read_dir("./src")? {
-            file_paths.push(file?.path());
-        }
-        for file in fs::read_dir(".")? {
-            file_paths.push(file?.path());
-        }
-        let mut extensions = Vec::new();
-        for file in file_paths.iter() {
-            println!("{}", file.display());
-            if let Some(ext) = file.extension() {
-                extensions.push(str::from_utf8(ext.as_bytes())?);
+        // This method feels so ugly. :c
+        let mut extensions: Vec<String> = Vec::new();
+        for directory in &[".", "./src"] {
+            if Path::new(directory).exists() {
+                for file in fs::read_dir(directory)? {
+                    let file = file?.path();
+                    if let Some(ext) = file.extension() {
+                        if let Some(ext) = ext.to_str() {
+                            extensions.push(ext.to_string());
+                        }
+                    }
+                }
             }
         }
         for ext in extensions.iter() {
-            if *ext == "cpp" {
-                return Ok(Language::CPP);
-            } else if *ext == "c" {
+            eprintln!("{}", &ext);
+            if ext == "c" {
                 return Ok(Language::C);
+            } else if ext == "cpp" {
+                return Ok(Language::CPP);
+            } else if ext == "py" {
+                return Ok(Language::Python);
             }
         }
-        Err("No compilable files found.".into())
+        Err("Found no files to compile.".into())
     }
 
-    fn is_inside_workspace() -> Result<bool, Box<dyn Error>> {
-        Ok(
-            env::current_dir()?
-                .starts_with(Spacework::workspace_home()?)
-        )
-    }
-
-    fn workspace_home() -> Result<PathBuf, Box<dyn Error>> {
-        Ok(env::var("HOME")?.parse::<PathBuf>()?.join("spacework"))
-    }
 }
 
+pub fn print_history() -> Result<(), Box<dyn Error>> {
+    // TODO:
+    // Print last few items.
+    // Print specific actions, such as last n creations.
+    // Probably need to figure out how to use `Seek` and
+    // `SeekFrom::End()`
+    let file = fs::read_to_string(
+        env::var("HOME")?
+        .parse::<PathBuf>()?
+        .join(".spacework_history")
+    )?;
+    print!("{}", &file);
+    Ok(())
+}
+    
+fn is_inside_workspace() -> Result<bool, Box<dyn Error>> {
+    Ok(env::current_dir()?.starts_with(workspace_home()?))
+}
+
+fn workspace_home() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(env::var("HOME")?.parse::<PathBuf>()?.join("spacework"))
+}
 
 #[cfg(test)]
 mod tests {
