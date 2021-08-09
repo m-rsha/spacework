@@ -8,23 +8,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Spacework: A workspace manager")
         .subcommand(
             App::new("new")
-            .arg(
-                Arg::new("name")
-                    .value_name("WORKSPACE NAME")
-                    .required(true)
-                    .index(1)
-                    .takes_value(true)
-            )
-            .arg(
-                Arg::new("language")
-                    .long("language")
-                    .short('l')
-                    .takes_value(true)
-                    .min_values(0)
-                    .max_values(1)
-            )
+                .arg(
+                    Arg::new("name")
+                        .value_name("WORKSPACE NAME")
+                        .required(true)
+                        .index(1)
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::new("language")
+                        .long("language")
+                        .short('l')
+                        .takes_value(true)
+                        .min_values(0)
+                        .max_values(1)
+                )
         )
-        .subcommand(App::new("build"))
+        .subcommand(
+            App::new("build")
+        )
         .arg(
             Arg::new("history")
                 .long("history")
@@ -35,16 +37,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opts = app.get_matches_mut();
 
     if let Some(opts) = opts.subcommand_matches("new") {
-        let sw = Spacework::from_options(
+        create_workspace(
             opts.value_of("name"),
             opts.value_of("language"),
         )?;
-        sw.create()?;
         return Ok(());
     }
 
     if let Some(_opts) = opts.subcommand_matches("build") {
-        let cmd = Spacework::compile()?;
+        let cmd = compile()?;
         if let Ok(stdout) = str::from_utf8(&cmd.stdout) {
             println!("{}", stdout);
         }
@@ -63,8 +64,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Also see `App.print_long_help()?`
     app.print_help()?;
     
-    // let cpp = Language::Cpp;
-    // cpp.compile()?;
-
     Ok(())
 }
