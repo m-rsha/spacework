@@ -20,9 +20,7 @@ fn log(data: &str) -> Result<(), Box<dyn Error>> {
         println!("Created spacework history file: {}", &histfile.display());
     }
 
-    let mut file = OpenOptions::new()
-        .append(true)
-        .open(&histfile)?;
+    let mut file = OpenOptions::new().append(true).open(&histfile)?;
     let time = Local::now().format("%Y-%m-%d@%X: ");
     let mut s = time.to_string();
     s.push_str(data);
@@ -42,12 +40,7 @@ pub fn create_workspace(
         None => return Err("Workspace requires a name".into()),
     };
     let language = match language {
-        Some(language) => match language {
-            "c" => Language::C,
-            "cpp" | "c++" => Language::Cpp,
-            "py" | "python" => Language::Python,
-            _ => return Err("Invalid language selection".into()),
-        },
+        Some(lang) => Language::from_str(lang)?,
         None => return Err("Language required".into()),
     };
 
@@ -125,8 +118,7 @@ pub fn print_history() -> Result<(), Box<dyn Error>> {
     // Probably need to figure out how to use `Seek` and
     // `SeekFrom::End()`
     let file = fs::read_to_string(
-        Path::new(&env::var("HOME")?)
-        .join(".spacework_history")
+        Path::new(&env::var("HOME")?).join(".spacework_history")
     )?;
     print!("{}", &file);
     Ok(())

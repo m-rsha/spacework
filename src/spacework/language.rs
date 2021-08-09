@@ -9,6 +9,15 @@ pub enum Language {
 }
 
 impl Language {
+    pub fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        match s.to_lowercase().as_str() {
+            "c" => Ok(Language::C),
+            "cpp" | "c++" => Ok(Language::Cpp),
+            "py" | "python" => Ok(Language::Python),
+            _ => return Err("Unable to parse language".into()),
+        }
+    }
+
     pub fn compile(&self) -> Result<Output, Box<dyn Error>> {
         match self {
             Language::C => self.compile_c(),
@@ -24,7 +33,7 @@ impl Language {
             Language::Python => "main.py",
         }
     }
-
+    
     fn compile_cpp(&self) -> Result<Output, Box<dyn Error>> {
         let compiler = "g++";
         let std = "-std=c++20";
@@ -78,5 +87,25 @@ mod tests {
     fn cant_compile_python() {
         let lang = Language::Python;
         lang.compile().unwrap();
+    }
+
+    #[test]
+    fn parses_language_from_str() -> Result<(), Box<dyn Error>> {
+        let lang = Language::from_str("c")?;
+        assert_eq!(lang, Language::C);
+        
+        let lang = Language::from_str("C++")?;
+        assert_eq!(lang, Language::Cpp);
+
+        let lang = Language::from_str("pYthon")?;
+        assert_eq!(lang, Language::Python);
+        Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn cant_parse_weird_stuffs() {
+        Language::from_str("eldritch horrors").unwrap();
+        unreachable!();
     }
 }
