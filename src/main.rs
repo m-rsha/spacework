@@ -8,24 +8,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Spacework: A workspace manager")
         .subcommand(
             App::new("new")
-                .arg(
-                    Arg::new("name")
-                        .value_name("WORKSPACE NAME")
-                        .required(true)
-                        .index(1)
-                        .takes_value(true)
-                )
-                .arg(
-                    Arg::new("language")
-                        .long("language")
-                        .short('l')
-                        .takes_value(true)
-                        .min_values(0)
-                        .max_values(1)
-                )
+            .arg(
+                Arg::new("name")
+                    .value_name("WORKSPACE NAME")
+                    .required(true)
+                    .index(1)
+                    .takes_value(true)
+            )
+            .arg(
+                Arg::new("language")
+                    .long("language")
+                    .short('l')
+                    .takes_value(true)
+                    .min_values(0)
+                    .max_values(1)
+            )
         )
         .subcommand(
             App::new("build")
+            .arg(
+                Arg::new("release")
+                    .long("release")
+                    .takes_value(false)
+                    .required(false)
+            )
         )
         .arg(
             Arg::new("history")
@@ -44,8 +50,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    if let Some(_opts) = opts.subcommand_matches("build") {
-        let cmd = compile()?;
+    if let Some(opts) = opts.subcommand_matches("build") {
+        let cmd = if opts.is_present("release") {
+            compile()?
+        } else {
+            compile()?
+        };
+
         if let Ok(stdout) = str::from_utf8(&cmd.stdout) {
             println!("{}", stdout);
         }

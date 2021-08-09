@@ -27,11 +27,10 @@ impl Language {
 
     fn compile_cpp(&self) -> Result<Output, Box<dyn Error>> {
         let compiler = "g++";
-        let standard = "-std=c++20";
-        let opt_lvl = "-0g";
+        let std = "-std=c++20";
         let src = format!("src/{}", self.src_file());
 
-        let args = [standard, src.as_str(), opt_lvl, "-o", "bin/testing"];
+        let args = [std, src.as_str(), "-o", "bin/testing"];
         let cmd = Command::new(compiler)
             .args(&args)
             .output()?;
@@ -40,10 +39,10 @@ impl Language {
 
     fn compile_c(&self) -> Result<Output, Box<dyn Error>> {
         let compiler = "gcc";
-        let standard = "-std=c17";
+        let std = "-std=c17";
         let src = format!("src/{}", self.src_file());
 
-        let args = [standard, src.as_str(), "-o", "bin/testing"];
+        let args = [std, src.as_str(), "-o", "bin/testing"];
         let cmd = Command::new(compiler)
             .args(&args)
             .output()?;
