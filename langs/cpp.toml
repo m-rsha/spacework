@@ -1,0 +1,8 @@
+[language]
+name = "C++"
+compiler = "g++"
+extensions = ["cc", "cpp", "cxx"]
+standard = "-std=c++20"
+warnings = ["-Wall", "-Wextra", "-Wpedantic"]
+output = "-o"
+optimization_levels = ["-Og", "-O0", "-O1", "-O2", "-O3"]
