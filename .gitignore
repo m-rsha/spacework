@@ -1,5 +1,4 @@
-# Cargo generated
 /target
-
 rustfmt.toml
 Cargo.lock
+*.swp
