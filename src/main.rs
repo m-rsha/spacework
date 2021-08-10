@@ -1,5 +1,6 @@
 mod spacework;
 use crate::spacework::workspace::*;
+use crate::spacework::language::Language;
 
 use clap::{App, Arg};
 use std::{str, error::Error};
@@ -70,10 +71,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         print_history()?;
         return Ok(());
     }
+    
+    let lang = Language::Cpp;
+    lang.compile()?;
 
     // If no commands are given, we show help.
     // Also see `App.print_long_help()?`
-    app.print_help()?;
+    // app.print_help()?;
     
     Ok(())
 }

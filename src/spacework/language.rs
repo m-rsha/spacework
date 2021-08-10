@@ -1,3 +1,8 @@
+use crate::spacework::languagefile::LanguageFile;
+
+use std::fs;
+use std::env;
+use std::path::Path;
 use std::error::Error;
 use std::process::{Output, Command};
 
@@ -14,7 +19,7 @@ impl Language {
             "c" => Ok(Language::C),
             "cpp" | "c++" => Ok(Language::Cpp),
             "py" | "python" => Ok(Language::Python),
-            _ => return Err("Unable to parse language".into()),
+            _ => return Err("Unknown or unsupported language".into()),
         }
     }
 
@@ -35,14 +40,26 @@ impl Language {
     }
     
     fn compile_cpp(&self) -> Result<Output, Box<dyn Error>> {
-        let compiler = "g++";
-        let std = "-std=c++20";
-        let src = format!("src/{}", self.src_file());
+        let langfile = Path::new(&env::var("CARGO_MANIFEST_DIR")?)
+            .join("langs/cpp.toml");
+        let cpp: LanguageFile = toml::from_str(&fs::read_to_string(langfile)?)?;
+        eprintln!("{:#?}", &cpp);
 
-        let args = [std, src.as_str(), "-o", "bin/testing"];
-        let cmd = Command::new(compiler)
-            .args(&args)
-            .output()?;
+        let mut args = Vec::new();
+        let compiler = cpp.language.compiler;
+        if let Some(std) = cpp.language.standard {
+            args.push(std);
+        };
+        if let Some(lvl) = cpp.language.optimization_levels.last() {
+            args.push(lvl.to_string());
+        };
+        args.push(format!("src/{}", self.src_file()));
+        args.push("-o".to_string());
+        args.push("bin/testing".to_string());
+
+        let cmd = Command::new(compiler).args(&args).output()?;
+        eprintln!("{:#?}", &cmd);
+
         Ok(cmd)
     }
 
