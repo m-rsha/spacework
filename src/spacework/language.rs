@@ -41,7 +41,7 @@ impl Language {
     
     fn compile_cpp(&self) -> Result<Output, Box<dyn Error>> {
         let langfile = Path::new(&env::var("CARGO_MANIFEST_DIR")?)
-            .join("langs/cpp.toml");
+            .join("langs/cpp/cpp.toml");
         let cpp: LanguageFile = toml::from_str(&fs::read_to_string(langfile)?)?;
         eprintln!("{:#?}", &cpp);
 

@@ -1,6 +1,7 @@
 mod spacework;
 use crate::spacework::workspace::*;
 use crate::spacework::language::Language;
+use crate::spacework::history;
 
 use clap::{App, Arg};
 use std::{str, error::Error};
@@ -68,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if opts.is_present("history") {
-        print_history()?;
+        history::read()?;
         return Ok(());
     }
     

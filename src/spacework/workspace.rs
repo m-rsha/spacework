@@ -1,35 +1,12 @@
-use super::language::Language;
+use crate::spacework::language::Language;
+use crate::spacework::history;
 
 use std::env;
 use std::error::Error;
-use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::str;
-
-use chrono::prelude::*;
-
-#[allow(dead_code)]
-fn log(data: &str) -> Result<(), Box<dyn Error>> {
-    let mut histfile: PathBuf = env::var("HOME")?.parse()?;
-    histfile.push(".spacework_history");
-    if !histfile.exists() {
-        File::create(&histfile)?;
-        log("Hello hello, world!")?;
-        println!("Created spacework history file: {}", &histfile.display());
-    }
-
-    let mut file = OpenOptions::new().append(true).open(&histfile)?;
-    let time = Local::now().format("%Y-%m-%d@%X: ");
-    let mut s = time.to_string();
-    s.push_str(data);
-    s.push('\n');
-    file.write_all(s.as_bytes())?;
-    // Not entirely sure if I need to call `flush`
-    file.flush()?;
-    Ok(())
-}
 
 pub fn create_workspace(
     name: Option<&str>,
@@ -61,6 +38,7 @@ pub fn create_workspace(
         return Err("Project directory already exists".into());
     }
     fs::create_dir_all(&proj_dir)?;
+    history::write("We made a directoryyyy!")?;
     println!("Created directory: {}", &proj_dir.display());
     
     let src_dir = &proj_dir.join("src");
@@ -111,19 +89,6 @@ fn get_language() -> Result<Language, Box<dyn Error>> {
     Err("Found no files to compile".into())
 }
 
-pub fn print_history() -> Result<(), Box<dyn Error>> {
-    // TODO:
-    // Print last few items.
-    // Print specific actions, such as last n creations.
-    // Probably need to figure out how to use `Seek` and
-    // `SeekFrom::End()`
-    let file = fs::read_to_string(
-        Path::new(&env::var("HOME")?).join(".spacework_history")
-    )?;
-    print!("{}", &file);
-    Ok(())
-}
-    
 fn is_inside_workspace() -> Result<bool, Box<dyn Error>> {
     Ok(env::current_dir()?.starts_with(workspace_home()?))
 }
