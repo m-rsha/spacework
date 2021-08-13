@@ -1,13 +1,18 @@
 [package]
 name = "spacework"
+description = "A workspace directory manager and, apparently, a taskrunner"
 authors = ["Marsha White"]
-version = "0.1.0"
+license = "MIT"
+readme = "README.md"
+version = "0.0.1"
 edition = "2018"
+repository = "https://github.com/m-rsha/spacework"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clap = "~3.0.0-beta.2"
-chrono = "0.4.19"
+chrono = "^0.4.19"
 toml = "^0.5.0"
 serde = { version = "^1.0.1", features = ["derive"] }

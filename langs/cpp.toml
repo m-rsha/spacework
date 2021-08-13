@@ -1,0 +1,17 @@
+[language]
+name = "C++"
+aliases = ["cpp", "c++", "cxx"]
+compiler = "g++"
+extensions = ["cpp", "cc","cxx"]
+standard = "-std=c++20"
+warnings = ["-Wall", "-Wextra", "-Wpedantic"]
+output = "-o"
+optimization_levels = ["-Og", "-O0", "-O1", "-O2", "-O3"]
+
+[workspace]
+dir = "cpp"
+src = "main.cpp"
+
+[cmd]
+build = "g++ -std=c++20 -Wall -Wextra -Wpedantic -O3 SRC -o OUT"
+run = "BUILD"

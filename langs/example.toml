@@ -1,8 +1,18 @@
 [language]
 name = "name of the language"
+aliases = ["more", "language", "names"]
 compiler = "compiler executable"
 extensions = ["ext", "exmpl", "exam"]
 # standard = "-std=c++20"
 warnings = ["-Wsome", "-Wsomemore"]
 output = "-o" # not entirely sure about this one
 optimization_levels = ["-Optimization1", "-Optimization5"]
+workspace_dir = "examples"
+
+[workspace]
+dir = "examples"
+src = "example.txt"
+
+[cmd]
+build = "cmd --file SRC --output OUT"
+run = "PASS"

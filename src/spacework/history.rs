@@ -12,7 +12,7 @@ fn history_file() -> Result<PathBuf, Box<dyn Error>> {
     Ok(env::var("HOME")?.parse::<PathBuf>()?.join(".spacework_history"))
 }
 
-pub fn write(text: &str) -> Result<(), Box<dyn Error>> {
+fn write(text: &str) -> Result<(), Box<dyn Error>> {
     let histfile = history_file()?;
     if !histfile.exists() {
         File::create(&histfile)?;
@@ -28,7 +28,7 @@ pub fn write(text: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn read() -> Result<(), Box<dyn Error>> {
+fn read() -> Result<(), Box<dyn Error>> {
     // TODO:
     // Print last few items.
     // Print specific actions, such as last n creations.
@@ -52,7 +52,7 @@ pub fn append(data: &str) -> Result<(), Box<dyn Error>> {
     
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
     
     #[test]
     fn todo() {

@@ -1,7 +1,11 @@
 mod spacework;
-use crate::spacework::workspace::*;
-use crate::spacework::language::Language;
-use crate::spacework::history;
+use crate::spacework::workspace::{self, Workspace};
+
+mod config;
+// use crate::spacework::history;
+
+// mod config;
+// use crate::config::spacework as spaceworkcfg;
 
 use clap::{App, Arg};
 use std::{str, error::Error};
@@ -45,19 +49,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opts = app.get_matches_mut();
 
     if let Some(opts) = opts.subcommand_matches("new") {
-        create_workspace(
+        Workspace::from_options(
             opts.value_of("name"),
             opts.value_of("language"),
         )?;
         return Ok(());
     }
 
-    if let Some(opts) = opts.subcommand_matches("build") {
-        let cmd = if opts.is_present("release") {
-            compile()?
-        } else {
-            compile()?
-        };
+    if let Some(_opts) = opts.subcommand_matches("build") {
+        let cmd = workspace::build()?;
 
         if let Ok(stdout) = str::from_utf8(&cmd.stdout) {
             println!("{}", stdout);
@@ -69,16 +69,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if opts.is_present("history") {
-        history::read()?;
+        // history::read()?;
         return Ok(());
     }
     
-    let lang = Language::Cpp;
-    lang.compile()?;
-
     // If no commands are given, we show help.
     // Also see `App.print_long_help()?`
     // app.print_help()?;
+
+    // workspace::find_src_file()?;
     
     Ok(())
 }
