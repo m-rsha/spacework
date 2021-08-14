@@ -11,7 +11,8 @@ optimization_levels = ["-Og", "-O0", "-O1", "-O2", "-O3"]
 [workspace]
 dir = "cpp"
 src = "main.cpp"
+template = "main.cpp"
 
 [cmd]
-build = "g++ -std=c++20 -Wall -Wextra -Wpedantic -O3 SRC -o OUT"
+build = "g++ -std=c++20 -Wall -Wextra -Wpedantic -O3 ./src/SRC -o ./bin/OUT"
 run = "BUILD"

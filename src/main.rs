@@ -1,14 +1,11 @@
+mod config;
 mod spacework;
 use crate::spacework::workspace::{self, Workspace};
 
-mod config;
-// use crate::spacework::history;
-
-// mod config;
-// use crate::config::spacework as spaceworkcfg;
-
 use clap::{App, Arg};
-use std::{str, error::Error};
+
+use std::error::Error;
+use std::str;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Spacework: A workspace manager")
@@ -38,12 +35,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .takes_value(false)
                     .required(false)
             )
-        )
-        .arg(
-            Arg::new("history")
-                .long("history")
-                .takes_value(false)
-                .required(false)
         );
 
     let opts = app.get_matches_mut();
@@ -59,25 +50,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(_opts) = opts.subcommand_matches("build") {
         let cmd = workspace::build()?;
 
-        if let Ok(stdout) = str::from_utf8(&cmd.stdout) {
-            println!("{}", stdout);
-        }
-        if let Ok(stderr) = str::from_utf8(&cmd.stderr) {
+        if cmd.status.success() {
+            if let Ok(stdout) = str::from_utf8(&cmd.stdout) {
+                println!("{}", stdout);
+            }
+        } else if let Ok(stderr) = str::from_utf8(&cmd.stderr) {
+            eprintln!("`build` command exited with an error.\n");
             eprintln!("{}", stderr);
+            eprintln!("{}", &cmd.status);
         }
+
         return Ok(());
     }
 
-    if opts.is_present("history") {
-        // history::read()?;
-        return Ok(());
-    }
-    
     // If no commands are given, we show help.
     // Also see `App.print_long_help()?`
-    // app.print_help()?;
+    app.print_help()?;
 
-    // workspace::find_src_file()?;
-    
     Ok(())
 }

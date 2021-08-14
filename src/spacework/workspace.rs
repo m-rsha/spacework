@@ -1,5 +1,5 @@
 use crate::config::languagefile::LanguageFile;
-// use crate::spacework::history;
+use crate::config::spaceworkfile::SpaceworkFile;
 
 use std::env;
 use std::error::Error;
@@ -12,9 +12,11 @@ use std::io::Write;
 pub struct Workspace;
 
 impl Workspace {
-    pub fn create(name: &str, lang: &str) -> Result<(), Box<dyn Error>> {
-        let proj_name = name;
-        let langfile: LanguageFile = LanguageFile::from_str(lang)?;
+    pub fn create(
+        proj_name: &str,
+        lang: &str
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        let langfile = LanguageFile::from_language(lang)?;
 
         let ws = workspace_dir()?;
         if !ws.exists() {
@@ -29,26 +31,28 @@ impl Workspace {
         }
         fs::create_dir_all(&proj_dir)?;
         // history::write("We made a directoryyyy!")?;
-        println!("Created directory: {}", &proj_dir.display());
+        println!("Created project directory: {}", &proj_dir.display());
 
         create_spacework_toml(&proj_dir, &langfile)?;
         
         let src_dir = &proj_dir.join("src");
         fs::create_dir_all(&src_dir)?;
-        File::create(&src_dir.join(langfile.workspace.src))?;
+
+        let mut src_file = File::create(&src_dir.join(&langfile.workspace.src))?;
+        src_file.write_all(&langfile.template()?.as_bytes())?;
 
         let bin_dir = &proj_dir.join("bin");
         fs::create_dir_all(&bin_dir)?;
 
-        Ok(())
+        Ok(proj_dir)
     }
 
     pub fn from_options(
-        name: Option<&str>,
+        proj_name: Option<&str>,
         lang: Option<&str>,
-    ) -> Result<(), Box<dyn Error>> {
-        let name = match name {
-            Some(name) => name,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        let proj_name = match proj_name {
+            Some(proj_name) => proj_name,
             None => return Err("Workspace requires a name".into()),
         };
         let lang = match lang {
@@ -56,7 +60,7 @@ impl Workspace {
             None => return Err("Workspace requires a language".into()),
         };
 
-        Ok(Self::create(name, lang)?)
+        Ok(Self::create(proj_name, lang)?)
     }
 }
 
@@ -65,45 +69,33 @@ fn create_spacework_toml(
     langfile: &LanguageFile
 ) -> Result<File, Box<dyn Error>> {
     let mut cfg = File::create(&dir.join("spacework.toml"))?;
-    let toml = format!("[workspace]\nlanguage = {}", langfile.language.name);
+    let toml = format!("[workspace]\nlanguage = \"{}\"", langfile.language.name);
     cfg.write_all(&toml.as_bytes())?;
 
     Ok(cfg)
 }
 
 pub fn build() -> Result<Output, Box<dyn Error>> {
-    let src = find_src_file()?;
-    let langfile = LanguageFile::from_str(
-        &fs::read_to_string("spacework.toml")?
-    )?;
-    // let src = langfile.workspace.src;
-    let cmd = langfile.build()?;
-    Ok(cmd)
+    let cfg: SpaceworkFile = find_cfg(&mut env::current_dir()?)?;
+    let langfile = LanguageFile::from_language(&cfg.workspace.language)?;
+
+    Ok(langfile.build()?)
 }
 
-pub fn find_src_file() -> Result<(), Box<dyn Error>> {
-    // Look for a spacework.toml file in current dir, then search each ancestor
-    // for it until we find it, then use that dir to find the source file in
-    // `./src/main.ext`
-    if !is_inside_workspace()? {
-        return Err("Must be inside a spacework workspace".into());
+pub fn find_cfg(dir: &mut PathBuf) -> Result<SpaceworkFile, Box<dyn Error>> {
+    if !is_inside_workspace(&dir)? {
+        Err("Must be inside a spacework workspace.".into())
+    } else if let Ok(cfg) = fs::read_to_string("spacework.toml") {
+        Ok(SpaceworkFile::from_str(&cfg)?)
+    } else if dir.pop() {
+        find_cfg(dir)
+    } else {
+        Err("`spacework` config file not found".into())
     }
-    let cwd = env::current_dir()?;
-    let full_path = Path::new(&cwd).ancestors();
-    let mut stripped = Path::new(".");
-
-    for path in full_path {
-        if path.starts_with(workspace_dir()?) {
-            stripped = path.strip_prefix(workspace_dir()?).unwrap();
-            eprintln!("Stripped: {}", stripped.display());
-        }
-    }
-
-    Ok(())
 }
 
-fn is_inside_workspace() -> Result<bool, Box<dyn Error>> {
-    Ok(env::current_dir()?.starts_with(workspace_dir()?))
+fn is_inside_workspace(path: &PathBuf) -> Result<bool, Box<dyn Error>> {
+    Ok(path.starts_with(workspace_dir()?))
 }
 
 fn workspace_dir() -> Result<PathBuf, Box<dyn Error>> {
@@ -115,12 +107,25 @@ mod tests {
     use super::*;
     
     #[test]
-    fn detects_inside_workspace_dir() -> Result<(), Box<dyn Error>> {
-        env::set_current_dir(env::temp_dir())?;
-        assert!(!is_inside_workspace()?);
+    #[should_panic]
+    fn cfg_not_found_in_temp_dir() {
+        let mut tmp = env::temp_dir();
+        find_cfg(&mut tmp).unwrap();
+    }
 
-        env::set_current_dir(&workspace_dir()?)?;
-        assert!(is_inside_workspace()?);
+    #[test]
+    fn cfg_found_in_workspace() -> Result<(), Box<dyn Error>> {
+        let mut dir = Workspace::create(".spacework_test", "cpp")?;
+        find_cfg(&mut dir)?;
+        fs::remove_dir_all(dir)?;
+
+        Ok(())
+    }
+    
+    #[test]
+    fn detects_inside_workspace_dir() -> Result<(), Box<dyn Error>> {
+        assert!(!is_inside_workspace(&env::temp_dir())?);
+        assert!(is_inside_workspace(&workspace_dir()?)?);
         
         Ok(())
     }

@@ -1,10 +1,7 @@
 use serde::Deserialize;
 use std::error::Error;
 use std::process::{Command, Output};
-use std::env;
-use std::fs;
-use std::path::Path;
-use std::ffi::OsStr;
+use std::str;
 
 #[derive(Debug, Deserialize)]
 pub struct LanguageFile {
@@ -38,28 +35,72 @@ pub struct Cmd {
     pub run: String,
 }
 
+const TOML: [&'static str; 2] = [
+    include_str!("../../langs/example.toml"),
+    include_str!("../../langs/cpp.toml"),
+];
+
+const TEMPLATES: [&'static str; 2] = [
+    "main.cpp",
+    include_str!("../../langs/templates/main.cpp"),
+];
+
 impl LanguageFile {
-    pub fn from_str(lang: &str) -> Result<Self, Box<dyn Error>> {
+    // TODO:
+    // Make this less terrible D:
+    pub fn template(&self) -> Result<&'static str, Box<dyn Error>> {
+        for (idx, template) in TEMPLATES.iter().enumerate() {
+            if template == &self.workspace.src {
+                return Ok(TEMPLATES[idx + 1])
+            }
+        }
+
+        Err("Unable to find matching template file.".into())
+    }
+
+    pub fn from_language(lang_name: &str) -> Result<Self, Box<dyn Error>> {
+        let lang_name = lang_name.to_lowercase();
         let langfiles: Vec<LanguageFile> = Self::langfiles()?;
         for langfile in langfiles {
-            if langfile.language.aliases.contains(&lang.to_string()) {
+            if langfile.language.aliases.contains(&lang_name) {
                 return Ok(langfile);
             }
-            if langfile.language.name == lang {
+            if langfile.language.name == lang_name {
                 return Ok(langfile);
             }
         }
 
-        Err("Language file not found. Consider creating one".into())
+        Err(
+            format!(
+                "Language file not found for `{}`. Check your spelling or consider creating one in your `spacework` directory.",
+                lang_name
+            ).into()
+        )
     }
 
 	pub fn build(&self) -> Result<Output, Box<dyn Error>> {
         let mut outfile = self.workspace.src.clone();
+
         for ext in self.language.extensions.iter() {
-            if let Some(e) = ext.strip_suffix(format!(".{}", ext).as_str()) {
-                outfile = e.to_string();
+            if let Some(stripped) = outfile.strip_suffix(
+                format!(".{}", ext).as_str()
+            ) {
+                outfile = stripped.to_string();
             }
         }
+
+        if outfile == self.workspace.src {
+            return Err(
+                format!(
+                    "Unable to find matching file extension for `{}`.",
+                    outfile
+                ).into()
+            )
+        }
+
+        // TODO:
+        // Make a list of these variables.
+        // `SRC`, `OUT`, etc.
         let on_build = self.cmd.build
             .replace("SRC", &self.workspace.src)
             .replace("OUT", &outfile);
@@ -75,22 +116,16 @@ impl LanguageFile {
     
     fn langfiles() -> Result<Vec<LanguageFile>, Box<dyn Error>> {
         let mut langfiles = Vec::new();
-        let cargo_dir = env::var("CARGO_MANIFEST_DIR")?;
-        let cargo_dir = Path::new(&cargo_dir);
-        let langfile_dir = cargo_dir.join("langs/");
-        for entry in fs::read_dir(langfile_dir)? {
-            let entry = entry?.path();
-            let ext = match entry.extension() {
-                Some(ext) => ext,
-                None => OsStr::new(""),
-            };
-            if entry.is_file() && ext == "toml" {
-                langfiles.push(toml::from_str(&fs::read_to_string(entry)?)?);
-            }
+        for langfile in TOML {
+            langfiles.push(toml::from_str(langfile)?);
         }
+
         Ok(langfiles)
     }
     
+    // TODO:
+    // Do something with this D:
+    #[allow(dead_code)]
     pub fn available_languages(
     ) -> Result<(Vec<String>, Vec<String>), Box<dyn Error>> {
         let langfiles = Self::langfiles()?;
