@@ -1,6 +1,7 @@
 mod config;
 mod spacework;
 use crate::spacework::workspace::{self, Workspace};
+use crate::config::runfile;
 
 use clap::{App, Arg};
 
@@ -23,8 +24,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .long("language")
                     .short('l')
                     .takes_value(true)
-                    .min_values(0)
-                    .max_values(1)
             )
         )
         .subcommand(
@@ -35,6 +34,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .takes_value(false)
                     .required(false)
             )
+        )
+        .arg(
+            Arg::new("command")
+                .value_name("COMMAND")
+                // .multiple_occurrences(true)
+                .exclusive(true)
         );
 
     let opts = app.get_matches_mut();
@@ -44,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             opts.value_of("name"),
             opts.value_of("language"),
         )?;
+
         return Ok(());
     }
 
@@ -63,9 +69,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    // If no commands are given, we show help.
-    // Also see `App.print_long_help()?`
-    app.print_help()?;
+    if let Some(cmds) = opts.values_of("command") {
+        for cmd in cmds {
+            let output = runfile::run(cmd)?;
+            if output.status.success() {
+                if let Ok(stdout) = str::from_utf8(&output.stdout) {
+                    print!("{}", stdout);
+                }
+            } else if let Ok(stderr) = str::from_utf8(&output.stderr) {
+                eprintln!("`{}` exited with an error.\n", cmd);
+                eprintln!("{}", stderr);
+                eprintln!("{}", output.status);
+            }
+        }
+    } else {
+        // If no commands are given, we show help.
+        // Also see `App.print_long_help()?;`
+        app.print_help()?;
+    }
 
     Ok(())
 }

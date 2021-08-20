@@ -33,13 +33,13 @@ impl Workspace {
         // history::write("We made a directoryyyy!")?;
         println!("Created project directory: {}", &proj_dir.display());
 
-        create_spacework_toml(&proj_dir, &langfile)?;
+        SpaceworkFile::create(&proj_dir, &langfile)?;
         
         let src_dir = &proj_dir.join("src");
         fs::create_dir_all(&src_dir)?;
 
         let mut src_file = File::create(&src_dir.join(&langfile.workspace.src))?;
-        src_file.write_all(&langfile.template()?.as_bytes())?;
+        src_file.write_all(langfile.template()?.as_bytes())?;
 
         let bin_dir = &proj_dir.join("bin");
         fs::create_dir_all(&bin_dir)?;
@@ -60,46 +60,36 @@ impl Workspace {
             None => return Err("Workspace requires a language".into()),
         };
 
-        Ok(Self::create(proj_name, lang)?)
+        Self::create(proj_name, lang)
     }
-}
-
-fn create_spacework_toml(
-    dir: &PathBuf,
-    langfile: &LanguageFile
-) -> Result<File, Box<dyn Error>> {
-    let mut cfg = File::create(&dir.join("spacework.toml"))?;
-    let toml = format!("[workspace]\nlanguage = \"{}\"", langfile.language.name);
-    cfg.write_all(&toml.as_bytes())?;
-
-    Ok(cfg)
 }
 
 pub fn build() -> Result<Output, Box<dyn Error>> {
-    let cfg: SpaceworkFile = find_cfg(&mut env::current_dir()?)?;
+    let cfg = SpaceworkFile::find_in_dir(&mut env::current_dir()?)?;
     let langfile = LanguageFile::from_language(&cfg.workspace.language)?;
 
-    Ok(langfile.build()?)
+    langfile.build()
 }
 
-pub fn find_cfg(dir: &mut PathBuf) -> Result<SpaceworkFile, Box<dyn Error>> {
-    if !is_inside_workspace(&dir)? {
-        Err("Must be inside a spacework workspace.".into())
-    } else if let Ok(cfg) = fs::read_to_string("spacework.toml") {
-        Ok(SpaceworkFile::from_str(&cfg)?)
-    } else if dir.pop() {
-        find_cfg(dir)
-    } else {
-        Err("`spacework` config file not found".into())
-    }
-}
-
-fn is_inside_workspace(path: &PathBuf) -> Result<bool, Box<dyn Error>> {
+pub fn is_inside_workspace(path: &Path) -> Result<bool, Box<dyn Error>> {
     Ok(path.starts_with(workspace_dir()?))
 }
 
-fn workspace_dir() -> Result<PathBuf, Box<dyn Error>> {
-    Ok(Path::new(&env::var("HOME")?).join("spacework"))
+pub fn workspace_dir() -> Result<PathBuf, Box<dyn Error>> {
+    let home_dir = match env::var("HOME") {
+        Ok(home) => home,
+        Err(e) => match e {
+            env::VarError::NotPresent => return Err(
+                "`HOME` environment variable not found. Unable to create workspace".into()
+            ),
+            env::VarError::NotUnicode(_) => return Err(
+                "Unable to parse `HOME` environment variable: Invalid unicode"
+                .into()
+            ),
+        },
+    };
+
+    Ok(Path::new(&home_dir).join("spacework"))
 }
 
 #[cfg(test)]
@@ -108,15 +98,18 @@ mod tests {
     
     #[test]
     #[should_panic]
-    fn cfg_not_found_in_temp_dir() {
+    fn cfg_not_found_in_non_workspace_dir() {
         let mut tmp = env::temp_dir();
-        find_cfg(&mut tmp).unwrap();
+
+        SpaceworkFile::find_in_dir(&mut tmp).unwrap();
     }
 
     #[test]
-    fn cfg_found_in_workspace() -> Result<(), Box<dyn Error>> {
+    fn cfg_found_in_workspace_dir() -> Result<(), Box<dyn Error>> {
         let mut dir = Workspace::create(".spacework_test", "cpp")?;
-        find_cfg(&mut dir)?;
+
+        SpaceworkFile::find_in_dir(&mut dir)?;
+
         fs::remove_dir_all(dir)?;
 
         Ok(())
@@ -125,6 +118,7 @@ mod tests {
     #[test]
     fn detects_inside_workspace_dir() -> Result<(), Box<dyn Error>> {
         assert!(!is_inside_workspace(&env::temp_dir())?);
+
         assert!(is_inside_workspace(&workspace_dir()?)?);
         
         Ok(())

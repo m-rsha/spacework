@@ -9,7 +9,7 @@ edition = "2018"
 repository = "https://github.com/m-rsha/spacework"
 
 [dependencies]
-clap = "~3.0.0-beta.2"
-chrono = "^0.4.19"
+clap = "3.0.0-beta.4"
+# chrono = "^0.4.19"
 toml = "^0.5.0"
 serde = { version = "^1.0.1", features = ["derive"] }

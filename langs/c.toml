@@ -1,0 +1,18 @@
+[language]
+name = "C"
+aliases = ["c"]
+compiler = "gcc"
+extensions = ["c"]
+standard = "-std=c17"
+warnings = ["-Wall", "-Wextra", "-Wpedantic"]
+output = "-o"
+optimization_levels = ["-g", "-O3"]
+
+[workspace]
+dir = "c"
+src = "main.c"
+template = "main.c"
+
+[cmd]
+build = "gcc ./src/SRC -o ./bin/OUT"
+run = "BUILD"

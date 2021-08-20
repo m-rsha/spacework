@@ -1,0 +1,4 @@
+[[cmd]]
+name = "build"
+bin = "g++"
+args = "-std=c++20 -Wall -Wextra -Wpedantic ./src/SRC -o ./bin/OUT"

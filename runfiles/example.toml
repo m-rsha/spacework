@@ -1,0 +1,14 @@
+[[cmd]]
+name = "ls"
+bin = "ls"
+args = "-lAh --group-directories-first"
+
+[[cmd]]
+name = "error"
+bin = "ls"
+args = "--fetch-kittens"
+
+[[cmd]]
+name = "compile"
+bin = "g++"
+args = "cat-sausages.cpp -o cat-sausages"

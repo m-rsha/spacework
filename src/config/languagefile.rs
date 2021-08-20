@@ -35,12 +35,13 @@ pub struct Cmd {
     pub run: String,
 }
 
-const TOML: [&'static str; 2] = [
+const TOML: [&str; 3] = [
     include_str!("../../langs/example.toml"),
     include_str!("../../langs/cpp.toml"),
+    include_str!("../../langs/c.toml"),
 ];
 
-const TEMPLATES: [&'static str; 2] = [
+const TEMPLATES: [&str; 2] = [
     "main.cpp",
     include_str!("../../langs/templates/main.cpp"),
 ];
@@ -62,10 +63,8 @@ impl LanguageFile {
         let lang_name = lang_name.to_lowercase();
         let langfiles: Vec<LanguageFile> = Self::langfiles()?;
         for langfile in langfiles {
-            if langfile.language.aliases.contains(&lang_name) {
-                return Ok(langfile);
-            }
-            if langfile.language.name == lang_name {
+            if langfile.language.aliases.contains(&lang_name) ||
+                langfile.language.name == lang_name {
                 return Ok(langfile);
             }
         }
@@ -90,12 +89,9 @@ impl LanguageFile {
         }
 
         if outfile == self.workspace.src {
-            return Err(
-                format!(
-                    "Unable to find matching file extension for `{}`.",
-                    outfile
-                ).into()
-            )
+            return Err(format!(
+                "Unable to find matching file extension for `{}`.",
+                outfile).into())
         }
 
         // TODO:
@@ -162,6 +158,7 @@ mod tests {
 
     #[test]
     fn all_langfiles_found_and_parseable() -> Result<(), Box<dyn Error>> {
+/*
         let mut langfiles = Vec::new();
         for entry in fs::read_dir(
             Path::new(&env::var("CARGO_MANIFEST_DIR")?)
@@ -176,6 +173,8 @@ mod tests {
                 &fs::read_to_string(langfile)?
             )?;
         }
+*/
+        LanguageFile::langfiles()?;
 
         Ok(())
     }
