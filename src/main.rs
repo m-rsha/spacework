@@ -1,9 +1,12 @@
 mod config;
 mod spacework;
+use crate::spacework::history;
 use crate::spacework::workspace::{self, Workspace};
-use crate::config::runfile;
 
-use clap::{App, Arg};
+use crate::config::runfile;
+use crate::config::cli::CliArg;
+
+use clap::App;
 
 use std::error::Error;
 use std::str;
@@ -12,35 +15,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Spacework: A workspace manager")
         .subcommand(
             App::new("new")
-            .arg(
-                Arg::new("name")
-                    .value_name("WORKSPACE NAME")
-                    .required(true)
-                    .index(1)
-                    .takes_value(true)
-            )
-            .arg(
-                Arg::new("language")
-                    .long("language")
-                    .short('l')
-                    .takes_value(true)
-            )
+                .about("Create a new project")
+                .arg(CliArg::new_name())
+                .arg(CliArg::new_language())
         )
         .subcommand(
             App::new("build")
-            .arg(
-                Arg::new("release")
-                    .long("release")
-                    .takes_value(false)
-                    .required(false)
-            )
+                .about("Compile source code into a binary")
         )
-        .arg(
-            Arg::new("command")
-                .value_name("COMMAND")
-                // .multiple_occurrences(true)
-                .exclusive(true)
-        );
+        .subcommand(
+            App::new("history")
+                .about("View previous spacework actions")
+                .arg(CliArg::history_all())
+        )
+        .arg(CliArg::command())
+        .arg(CliArg::purge());
 
     let opts = app.get_matches_mut();
 
@@ -49,6 +38,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             opts.value_of("name"),
             opts.value_of("language"),
         )?;
+
+        return Ok(());
+    }
+
+    if let Some(opts) = opts.subcommand_matches("history") {
+        if opts.is_present("all") {
+            print!("{}", history::read_all()?);
+        }
 
         return Ok(());
     }
@@ -65,6 +62,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             eprintln!("{}", stderr);
             eprintln!("{}", &cmd.status);
         }
+
+        return Ok(());
+    }
+
+    if opts.is_present("purge") {
+        println!(
+            "Deleting spacework directory and .spacework_history file"
+        );
+        workspace::delete_all()?;
+        history::delete_all()?;
 
         return Ok(());
     }

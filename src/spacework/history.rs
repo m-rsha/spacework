@@ -2,54 +2,84 @@ use std::env;
 use std::error::Error;
 use std::fs::{self, File, OpenOptions};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str;
+
 use chrono::prelude::*;
 
-// use std::process::Output;
-
-fn history_file() -> Result<PathBuf, Box<dyn Error>> {
-    Ok(env::var("HOME")?.parse::<PathBuf>()?.join(".spacework_history"))
+pub struct History {
+    histfile: PathBuf,
 }
 
-fn write(text: &str) -> Result<(), Box<dyn Error>> {
-    let histfile = history_file()?;
-    if !histfile.exists() {
-        File::create(&histfile)?;
-        write("Hello hello, world!")?;
-        println!("Created spacework history file: {}", &histfile.display());
+impl History {
+    pub fn new() -> Result<Self, Box<dyn Error>> {
+        let histfile = Path::new(&env::var("HOME")?)
+            .join(".spacework_history");
+
+        Ok(History { histfile })
     }
-    let mut file = OpenOptions::new().append(true).open(histfile)?;
-    let time = Local::now().format("%Y-%m-%d@%X: ").to_string();
-    writeln!(&file, "{}: {}", time, text)?;
-    // Not entirely sure if I need to call `flush`
-    file.flush()?;
 
-    Ok(())
-}
+    pub fn write<'a>(&self, text: &'a str) -> Result<&'a str, Box<dyn Error>> {
+        if !self.histfile.exists() {
+            self.create_history_file()?;
+        }
 
-fn read() -> Result<(), Box<dyn Error>> {
-    // TODO:
-    // Print last few items.
-    // Print specific actions, such as last n creations.
-    // Probably need to figure out how to use `Seek` and
-    // `SeekFrom::End()`
-    let file = fs::read_to_string(history_file()?)?;
-    print!("{}", &file);
+        let mut file = OpenOptions::new().append(true).open(&self.histfile)?;
+        writeln!(&file, "{} {}", self.format_time(), text)?;
 
-    Ok(())
-}
+        // Not sure if I need to call `flush`, but it was recommended
+        file.flush()?;
 
+        Ok(text)
+    }
+
+    pub fn read(&self) -> Result<String, Box<dyn Error>> {
+        // TODO:
+        // Print last few items.
+        // Print specific actions, such as last n creations.
+ 
+        let lines = fs::read_to_string(&self.histfile)?;
 /*
-pub fn append(data: &str) -> Result<(), Box<dyn Error>> {
-    let histfile = OpenOptions::new().append(true).open(history_file()?)?;
-
-    Ok(())
-}
-
+        let lines: Vec<&str> = fs::read_to_string(&self.histfile)?
+            .lines()
+            .rev()
+            .collect();
 */
 
-    
+        Ok(lines)
+    }
+
+    fn format_time(&self) -> String {
+        Local::now().format("%Y-%m-%d@%X: ").to_string()
+    }
+
+    fn create_history_file(&self) -> Result<(), Box<dyn Error>> {
+        File::create(&self.histfile)?;
+        self.write("Hello hello, world!")?;
+        // println!("Created spacework history file: {}", &histfile.display());
+
+        Ok(())
+    }
+}
+
+pub fn read_all() -> Result<String, Box<dyn Error>> {
+    Ok(fs::read_to_string(History::new()?.histfile)?)
+}
+
+pub fn write(text: &str) -> Result<&str, Box<dyn Error>> {
+    let history = History::new()?;
+
+    history.write(text)
+}
+
+pub fn delete_all() -> Result<(), Box<dyn Error>> {
+    let file = History::new()?.histfile;
+    eprintln!("{:#?}", file);
+    // fs::remove_file(History::new().histfile)?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     // use super::*;

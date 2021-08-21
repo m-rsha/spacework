@@ -1,5 +1,6 @@
 use crate::config::languagefile::LanguageFile;
 use crate::config::spaceworkfile::SpaceworkFile;
+use crate::spacework::history;
 
 use std::env;
 use std::error::Error;
@@ -21,16 +22,18 @@ impl Workspace {
         let ws = workspace_dir()?;
         if !ws.exists() {
             fs::create_dir_all(&ws)?;
-            println!("Created `spacework` directory: {}", &ws.display());
+            println!("{}", history::write(&format!(
+                "Created `spacework` directory: {}", &ws.display()))?
+            );
         }
 
-        let mut proj_dir = ws.join(&langfile.workspace.dir);
-        proj_dir.push(proj_name);
+        let proj_dir = ws
+            .join(&langfile.workspace.dir)
+            .join(proj_name);
         if proj_dir.exists() {
             return Err("Project directory already exists".into());
         }
         fs::create_dir_all(&proj_dir)?;
-        // history::write("We made a directoryyyy!")?;
         println!("Created project directory: {}", &proj_dir.display());
 
         SpaceworkFile::create(&proj_dir, &langfile)?;
@@ -75,21 +78,28 @@ pub fn is_inside_workspace(path: &Path) -> Result<bool, Box<dyn Error>> {
     Ok(path.starts_with(workspace_dir()?))
 }
 
-pub fn workspace_dir() -> Result<PathBuf, Box<dyn Error>> {
+pub fn workspace_dir() -> Result<PathBuf, &'static str> {
     let home_dir = match env::var("HOME") {
         Ok(home) => home,
         Err(e) => match e {
             env::VarError::NotPresent => return Err(
-                "`HOME` environment variable not found. Unable to create workspace".into()
+                "`HOME` environment variable not found. Unable to create workspace"
             ),
             env::VarError::NotUnicode(_) => return Err(
                 "Unable to parse `HOME` environment variable: Invalid unicode"
-                .into()
             ),
         },
     };
 
     Ok(Path::new(&home_dir).join("spacework"))
+}
+
+pub fn delete_all() -> Result<(), Box<dyn Error>> {
+    let dir = workspace_dir()?;
+    eprintln!("{:#?}", dir);
+    // fs::remove_dir_all(&workspace_dir()?)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
