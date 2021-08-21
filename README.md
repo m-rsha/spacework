@@ -1,6 +1,13 @@
 # `spacework` - a workspace manager
 
-`spacework` is hoping to become a simple workspace manager similar to `cargo`.
+# Warning: This project is nowhere near complete
+
+`spacework` is hoping to become a simple workspace manager similar to `cargo`
+without the dependency management. It will mostly help organize directories and
+track your previous commands to help you remember what you were working on last.
+It also will allow you to run simple build commands from it, along with
+defining your own custom commands in `toml` files.
+
 My main motivation for building it is to be able to organize and track my work.
 
 # Where it is
