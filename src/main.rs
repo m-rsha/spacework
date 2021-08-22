@@ -9,7 +9,7 @@ use crate::config::cli::CliArg;
 use clap::App;
 
 use std::error::Error;
-use std::str;
+use std::str::{self, FromStr};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Spacework: A workspace manager")
@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             App::new("history")
                 .about("View previous spacework actions")
                 .arg(CliArg::history_all())
+                .arg(CliArg::history_count())
         )
         .arg(CliArg::command())
         .arg(CliArg::purge());
@@ -34,6 +35,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opts = app.get_matches_mut();
 
     if let Some(opts) = opts.subcommand_matches("new") {
+/*
+        let workspace = Workspace::new()?
+            .name()?
+            .language()?;
+*/
         Workspace::from_options(
             opts.value_of("name"),
             opts.value_of("language"),
@@ -43,10 +49,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(opts) = opts.subcommand_matches("history") {
-        if opts.is_present("all") {
-            print!("{}", history::read_all()?);
-        }
+        let history = history::History::new()?;
 
+        if opts.is_present("all") {
+            print!("{}", history.read_all()?);
+        } else if let Some(count) = opts.value_of("count") {
+            for line in history.read_last(usize::from_str(count)?)?.iter() {
+                println!("{}", line);
+            }
+        }
+        
         return Ok(());
     }
 
@@ -67,11 +79,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if opts.is_present("purge") {
-        println!(
-            "Deleting spacework directory and .spacework_history file"
-        );
         workspace::delete_all()?;
-        history::delete_all()?;
+        history::delete_history_file()?;
+        println!(
+            "Deleted spacework directory and .spacework_history file"
+        );
 
         return Ok(());
     }

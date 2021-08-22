@@ -1,7 +1,7 @@
 use std::env;
 use std::error::Error;
 use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::str;
 
@@ -24,29 +24,33 @@ impl History {
             self.create_history_file()?;
         }
 
-        let mut file = OpenOptions::new().append(true).open(&self.histfile)?;
-        writeln!(&file, "{} {}", self.format_time(), text)?;
-
-        // Not sure if I need to call `flush`, but it was recommended
-        file.flush()?;
+        let mut file = match OpenOptions::new()
+            .append(true)
+            .open(&self.histfile) {
+            Ok(file) => file,
+            Err(e) => return Err(format!("Handle me: {}", e).into()),
+        };
+        
+        match file.write_all(
+                format!("{} {}\n", self.format_time(), text).as_bytes()) {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Handle me: {}", e).into()),
+        };
 
         Ok(text)
     }
 
-    pub fn read(&self) -> Result<String, Box<dyn Error>> {
-        // TODO:
-        // Print last few items.
-        // Print specific actions, such as last n creations.
- 
-        let lines = fs::read_to_string(&self.histfile)?;
-/*
-        let lines: Vec<&str> = fs::read_to_string(&self.histfile)?
+    pub fn read_last(&self, last: usize) -> Result<Vec<String>, Box<dyn Error>> {
+        Ok(fs::read_to_string(&self.histfile)?
             .lines()
             .rev()
-            .collect();
-*/
+            .take(last)
+            .map(|s| s.to_string())
+            .collect())
+    }
 
-        Ok(lines)
+    pub fn read_all(&self) -> Result<String, Box<dyn Error>> {
+        Ok(fs::read_to_string(&self.histfile)?)
     }
 
     fn format_time(&self) -> String {
@@ -60,10 +64,19 @@ impl History {
 
         Ok(())
     }
-}
 
-pub fn read_all() -> Result<String, Box<dyn Error>> {
-    Ok(fs::read_to_string(History::new()?.histfile)?)
+    fn delete_history_file(&self) -> Result<(), Box<dyn Error>> {
+        match fs::remove_file(&self.histfile) {
+            Ok(_) => Ok(()),
+            Err(e) => match e.kind() {
+                // Is it bad design to ignore this? I'm not sure
+                ErrorKind::NotFound => Ok(()),
+                _ => Err(
+                    format!("Unable to delete history file: {}", e).into()
+                ),
+            },
+        }
+    }
 }
 
 pub fn write(text: &str) -> Result<&str, Box<dyn Error>> {
@@ -72,12 +85,8 @@ pub fn write(text: &str) -> Result<&str, Box<dyn Error>> {
     history.write(text)
 }
 
-pub fn delete_all() -> Result<(), Box<dyn Error>> {
-    let file = History::new()?.histfile;
-    eprintln!("{:#?}", file);
-    // fs::remove_file(History::new().histfile)?;
-
-    Ok(())
+pub fn delete_history_file() -> Result<(), Box<dyn Error>> {
+    History::new()?.delete_history_file()
 }
 
 #[cfg(test)]

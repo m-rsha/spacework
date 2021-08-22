@@ -2,7 +2,7 @@ use crate::config::languagefile::LanguageFile;
 use crate::config::spaceworkfile::SpaceworkFile;
 use crate::spacework::history;
 
-use std::env;
+use std::env::{self, VarError};
 use std::error::Error;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
@@ -10,9 +10,17 @@ use std::process::Output;
 use std::str;
 use std::io::Write;
 
-pub struct Workspace;
+pub struct Workspace {
+//     root: PathBuf,
+}
 
 impl Workspace {
+/*
+    pub fn new() -> Result<Self, Box<dyn Error>> {
+        let root = 
+    }
+*/
+
     pub fn create(
         proj_name: &str,
         lang: &str
@@ -82,11 +90,12 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
     let home_dir = match env::var("HOME") {
         Ok(home) => home,
         Err(e) => match e {
-            env::VarError::NotPresent => return Err(
-                "`HOME` environment variable not found. Unable to create workspace"
+            VarError::NotPresent => return Err(
+                "HOME environment variable not found. \
+                    Unable to create workspace"
             ),
-            env::VarError::NotUnicode(_) => return Err(
-                "Unable to parse `HOME` environment variable: Invalid unicode"
+            VarError::NotUnicode(_) => return Err(
+                "Unable to parse HOME environment variable: Invalid unicode"
             ),
         },
     };
@@ -95,9 +104,7 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
 }
 
 pub fn delete_all() -> Result<(), Box<dyn Error>> {
-    let dir = workspace_dir()?;
-    eprintln!("{:#?}", dir);
-    // fs::remove_dir_all(&workspace_dir()?)?;
+    fs::remove_dir_all(&workspace_dir()?)?;
 
     Ok(())
 }
