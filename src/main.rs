@@ -35,11 +35,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let opts = app.get_matches_mut();
 
     if let Some(opts) = opts.subcommand_matches("new") {
-/*
-        let workspace = Workspace::new()?
-            .name()?
-            .language()?;
-*/
         Workspace::from_options(
             opts.value_of("name"),
             opts.value_of("language"),

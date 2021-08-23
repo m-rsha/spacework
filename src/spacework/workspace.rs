@@ -10,17 +10,9 @@ use std::process::Output;
 use std::str;
 use std::io::Write;
 
-pub struct Workspace {
-//     root: PathBuf,
-}
+pub struct Workspace;
 
 impl Workspace {
-/*
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        let root = 
-    }
-*/
-
     pub fn create(
         proj_name: &str,
         lang: &str
