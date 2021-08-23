@@ -1,11 +1,7 @@
-FROM ubuntu:latest
+FROM rust:bullseye
 
-RUN \
-    apt-get update && apt-get -y upgrade && \
-    apt-get install -y curl gcc && \
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o rustup.sh && \
-    sh rustup.sh -y && . $HOME/.cargo/env && \
-    cargo install spacework && \
-    spacework --help
+COPY . .
+
+RUN cargo install --path . && spacework --help
 
 CMD ["bash"]
