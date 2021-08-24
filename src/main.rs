@@ -1,10 +1,10 @@
 mod config;
 mod spacework;
-use crate::spacework::history;
-use crate::spacework::workspace::{self, Workspace};
+use spacework::history;
+use spacework::workspace::{self, Workspace};
 
-use crate::config::runfile;
-use crate::config::cli::CliArg;
+use config::runfile;
+use config::cli::CliArg;
 
 use clap::App;
 
@@ -74,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if opts.is_present("purge") {
-        workspace::delete_all()?;
+        workspace::delete_workspace()?;
         history::delete_history_file()?;
         println!(
             "Deleted spacework directory and .spacework_history file"

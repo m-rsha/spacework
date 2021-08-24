@@ -19,34 +19,22 @@ impl Workspace {
     ) -> Result<PathBuf, Box<dyn Error>> {
         let langfile = LanguageFile::from_language(lang)?;
 
-        let ws = workspace_dir()?;
-        if !ws.exists() {
-            fs::create_dir_all(&ws)?;
+        let workspace_root = workspace_dir()?;
+        if !workspace_root.exists() {
+            fs::create_dir_all(&workspace_root)?;
             println!("{}", history::write(&format!(
-                "Created `spacework` directory: {}", &ws.display()))?
-            );
+                "Created `spacework` directory: {}",
+                &workspace_root.display())
+            )?);
         }
 
-        let proj_dir = ws
-            .join(&langfile.workspace.dir)
-            .join(proj_name);
-        if proj_dir.exists() {
-            return Err("Project directory already exists".into());
-        }
-        fs::create_dir_all(&proj_dir)?;
-        println!("Created project directory: {}", &proj_dir.display());
+        let proj_dir = create_proj_dir(&workspace_root, proj_name, &langfile)?;
 
         SpaceworkFile::create(&proj_dir, &langfile)?;
+
+        let (src_dir, _) = create_subdirs(&proj_dir)?;
+        create_src_file(&src_dir, &langfile)?;
         
-        let src_dir = &proj_dir.join("src");
-        fs::create_dir_all(&src_dir)?;
-
-        let mut src_file = File::create(&src_dir.join(&langfile.workspace.src))?;
-        src_file.write_all(langfile.template()?.as_bytes())?;
-
-        let bin_dir = &proj_dir.join("bin");
-        fs::create_dir_all(&bin_dir)?;
-
         Ok(proj_dir)
     }
 
@@ -58,6 +46,7 @@ impl Workspace {
             Some(proj_name) => proj_name,
             None => return Err("Workspace requires a name".into()),
         };
+
         let lang = match lang {
             Some(lang) => lang,
             None => return Err("Workspace requires a language".into()),
@@ -65,6 +54,45 @@ impl Workspace {
 
         Self::create(proj_name, lang)
     }
+}
+
+fn create_proj_dir(
+    workspace_root: &PathBuf,
+    proj_name: &str,
+    langfile: &LanguageFile,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let proj_dir = workspace_root
+        .join(&langfile.workspace.dir)
+        .join(proj_name);
+    if proj_dir.exists() {
+        return Err("Project directory already exists".into());
+    }
+    fs::create_dir_all(&proj_dir)?;
+    println!("Created project directory: {}", &proj_dir.display());
+
+    Ok(proj_dir)
+}
+
+fn create_src_file(
+    src_dir: &PathBuf,
+    langfile: &LanguageFile
+) -> Result<(), Box<dyn Error>> {
+    File::create(src_dir.join(&langfile.workspace.src))?
+        .write_all(langfile.template()?.as_bytes())?;
+
+    Ok(())
+}
+
+fn create_subdirs(
+    proj_dir: &PathBuf
+) -> Result<(PathBuf, PathBuf), Box<dyn Error>> {
+    let src_dir = proj_dir.join("src");
+    fs::create_dir_all(&src_dir)?;
+
+    let bin_dir = proj_dir.join("bin");
+    fs::create_dir_all(&bin_dir)?;
+
+    Ok((src_dir, bin_dir))
 }
 
 pub fn build() -> Result<Output, Box<dyn Error>> {
@@ -95,7 +123,7 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
     Ok(Path::new(&home_dir).join("spacework"))
 }
 
-pub fn delete_all() -> Result<(), Box<dyn Error>> {
+pub fn delete_workspace() -> Result<(), Box<dyn Error>> {
     fs::remove_dir_all(&workspace_dir()?)?;
 
     Ok(())

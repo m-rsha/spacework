@@ -40,7 +40,10 @@ impl History {
         Ok(text)
     }
 
-    pub fn read_last(&self, last: usize) -> Result<Vec<String>, Box<dyn Error>> {
+    pub fn read_last(
+        &self,
+        last: usize
+    ) -> Result<Vec<String>, Box<dyn Error>> {
         Ok(fs::read_to_string(&self.histfile)?
             .lines()
             .rev()
