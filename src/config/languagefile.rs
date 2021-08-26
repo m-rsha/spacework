@@ -41,10 +41,8 @@ const TOML: [&str; 3] = [
     include_str!("../../langs/c.toml"),
 ];
 
-const TEMPLATES: [&str; 2] = [
-    "main.cpp",
-    include_str!("../../langs/templates/main.cpp"),
-];
+const TEMPLATES: [&str; 2] =
+    ["main.cpp", include_str!("../../langs/templates/main.cpp")];
 
 impl LanguageFile {
     // TODO:
@@ -52,7 +50,7 @@ impl LanguageFile {
     pub fn template(&self) -> Result<&'static str, Box<dyn Error>> {
         for (idx, template) in TEMPLATES.iter().enumerate() {
             if template == &self.workspace.src {
-                return Ok(TEMPLATES[idx + 1])
+                return Ok(TEMPLATES[idx + 1]);
             }
         }
 
@@ -63,8 +61,9 @@ impl LanguageFile {
         let lang_name = lang_name.to_lowercase();
         let langfiles: Vec<LanguageFile> = Self::langfiles()?;
         for langfile in langfiles {
-            if langfile.language.aliases.contains(&lang_name) ||
-                langfile.language.name == lang_name {
+            if langfile.language.aliases.contains(&lang_name)
+                || langfile.language.name == lang_name
+            {
                 return Ok(langfile);
             }
         }
@@ -77,13 +76,13 @@ impl LanguageFile {
         )
     }
 
-	pub fn build(&self) -> Result<Output, Box<dyn Error>> {
+    pub fn build(&self) -> Result<Output, Box<dyn Error>> {
         let mut outfile = self.workspace.src.clone();
 
         for ext in self.language.extensions.iter() {
-            if let Some(stripped) = outfile.strip_suffix(
-                format!(".{}", ext).as_str()
-            ) {
+            if let Some(stripped) =
+                outfile.strip_suffix(format!(".{}", ext).as_str())
+            {
                 outfile = stripped.to_string();
             }
         }
@@ -91,13 +90,17 @@ impl LanguageFile {
         if outfile == self.workspace.src {
             return Err(format!(
                 "Unable to find matching file extension for `{}`.",
-                outfile).into())
+                outfile
+            )
+            .into());
         }
 
         // TODO:
         // Make a list of these variables.
         // `SRC`, `OUT`, etc.
-        let on_build = self.cmd.build
+        let on_build = self
+            .cmd
+            .build
             .replace("SRC", &self.workspace.src)
             .replace("OUT", &outfile);
         let (bin, args) = match on_build.split_once(' ') {
@@ -109,7 +112,7 @@ impl LanguageFile {
 
         Ok(cmd)
     }
-    
+
     fn langfiles() -> Result<Vec<LanguageFile>, Box<dyn Error>> {
         let mut langfiles = Vec::new();
         for langfile in TOML {
@@ -118,7 +121,7 @@ impl LanguageFile {
 
         Ok(langfiles)
     }
-    
+
     // TODO:
     // Do something with this D:
     #[allow(dead_code)]
@@ -142,10 +145,10 @@ impl LanguageFile {
 mod tests {
     use super::*;
     use std::env;
+    use std::error::Error;
     use std::fs;
     use std::path::Path;
-    use std::error::Error;
-    
+
     #[test]
     fn example_langfile_found_and_parseable() -> Result<(), Box<dyn Error>> {
         let langfile = Path::new(&env::var("CARGO_MANIFEST_DIR")?)
@@ -158,22 +161,22 @@ mod tests {
 
     #[test]
     fn all_langfiles_found_and_parseable() -> Result<(), Box<dyn Error>> {
-/*
-        let mut langfiles = Vec::new();
-        for entry in fs::read_dir(
-            Path::new(&env::var("CARGO_MANIFEST_DIR")?)
-                .join("langs/"))? {
-            let entry = entry?.path();
-            if entry.is_file() {
-                langfiles.push(entry);
-            }
-        }
-        for langfile in langfiles.iter() {
-            let _: LanguageFile = toml::from_str(
-                &fs::read_to_string(langfile)?
-            )?;
-        }
-*/
+        /*
+                let mut langfiles = Vec::new();
+                for entry in fs::read_dir(
+                    Path::new(&env::var("CARGO_MANIFEST_DIR")?)
+                        .join("langs/"))? {
+                    let entry = entry?.path();
+                    if entry.is_file() {
+                        langfiles.push(entry);
+                    }
+                }
+                for langfile in langfiles.iter() {
+                    let _: LanguageFile = toml::from_str(
+                        &fs::read_to_string(langfile)?
+                    )?;
+                }
+        */
         LanguageFile::langfiles()?;
 
         Ok(())

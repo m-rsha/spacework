@@ -16,16 +16,13 @@ struct Cmd {
 }
 
 pub fn run(command: &str) -> Result<Output, Box<dyn Error>> {
-    let runfile: RunFile = toml::from_str(
-        include_str!("../../runfiles/example.toml")
-    )?;
+    let runfile: RunFile =
+        toml::from_str(include_str!("../../runfiles/example.toml"))?;
 
     match runfile.cmd.iter().find(|&c| c.name == command) {
-        Some(cmd) => Ok(
-            Command::new(&cmd.bin)
-                .args(cmd.args.split_whitespace())
-                .output()?
-        ),
+        Some(cmd) => Ok(Command::new(&cmd.bin)
+            .args(cmd.args.split_whitespace())
+            .output()?),
         None => Err(format!("`{}` not found in runfile", command).into()),
     }
 }

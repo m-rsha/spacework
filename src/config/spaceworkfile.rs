@@ -1,12 +1,12 @@
-use crate::spacework::workspace;
 use crate::config::languagefile::LanguageFile;
+use crate::spacework::workspace;
 
 use serde::Deserialize;
 
 use std::error::Error;
-use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize)]
 pub struct SpaceworkFile {
@@ -39,12 +39,11 @@ impl SpaceworkFile {
 
     pub fn create(
         dir: &Path,
-        langfile: &LanguageFile
+        langfile: &LanguageFile,
     ) -> Result<File, Box<dyn Error>> {
         let mut cfg = File::create(dir.join("spacework.toml"))?;
-        let toml = format!(
-            "[workspace]\nlanguage = \"{}\"", langfile.language.name
-        );
+        let toml =
+            format!("[workspace]\nlanguage = \"{}\"", langfile.language.name);
         cfg.write_all(toml.as_bytes())?;
 
         Ok(cfg)

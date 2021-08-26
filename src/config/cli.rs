@@ -4,11 +4,9 @@ pub struct CliArg;
 
 impl CliArg {
     pub fn command() -> Arg<'static> {
-        Arg::new("command")
-            .value_name("COMMAND")
-            .exclusive(true)
+        Arg::new("command").value_name("COMMAND").exclusive(true)
     }
-    
+
     pub fn purge() -> Arg<'static> {
         Arg::new("purge")
             .about("Delete the spacework directory and history files")
@@ -28,9 +26,9 @@ impl CliArg {
             .value_name("WORKSPACE NAME")
             .required(true)
             .takes_value(true)
-            // .index(1)
+        // .index(1)
     }
-    
+
     pub fn history_all() -> Arg<'static> {
         Arg::new("all")
             .about("View all spacework history")

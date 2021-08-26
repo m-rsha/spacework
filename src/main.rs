@@ -3,8 +3,8 @@ mod spacework;
 use spacework::history;
 use spacework::workspace::{self, Workspace};
 
-use config::runfile;
 use config::cli::CliArg;
+use config::runfile;
 
 use clap::App;
 
@@ -17,17 +17,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             App::new("new")
                 .about("Create a new project")
                 .arg(CliArg::new_name())
-                .arg(CliArg::new_language())
+                .arg(CliArg::new_language()),
         )
         .subcommand(
-            App::new("build")
-                .about("Compile source code into a binary")
+            App::new("build").about("Compile source code into a binary"),
         )
         .subcommand(
             App::new("history")
                 .about("View previous spacework actions")
                 .arg(CliArg::history_all())
-                .arg(CliArg::history_count())
+                .arg(CliArg::history_count()),
         )
         .arg(CliArg::command())
         .arg(CliArg::purge());
@@ -53,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("{}", line);
             }
         }
-        
+
         return Ok(());
     }
 
@@ -76,9 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if opts.is_present("purge") {
         workspace::delete_workspace()?;
         history::delete_history_file()?;
-        println!(
-            "Deleted spacework directory and .spacework_history file"
-        );
+        println!("Deleted spacework directory and .spacework_history file");
 
         return Ok(());
     }

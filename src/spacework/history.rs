@@ -13,8 +13,8 @@ pub struct History {
 
 impl History {
     pub fn new() -> Result<Self, Box<dyn Error>> {
-        let histfile = Path::new(&env::var("HOME")?)
-            .join(".spacework_history");
+        let histfile =
+            Path::new(&env::var("HOME")?).join(".spacework_history");
 
         Ok(History { histfile })
     }
@@ -24,15 +24,15 @@ impl History {
             self.create_history_file()?;
         }
 
-        let mut file = match OpenOptions::new()
-            .append(true)
-            .open(&self.histfile) {
-            Ok(file) => file,
-            Err(e) => return Err(format!("Handle me: {}", e).into()),
-        };
-        
-        match file.write_all(
-                format!("{} {}\n", self.format_time(), text).as_bytes()) {
+        let mut file =
+            match OpenOptions::new().append(true).open(&self.histfile) {
+                Ok(file) => file,
+                Err(e) => return Err(format!("Handle me: {}", e).into()),
+            };
+
+        match file
+            .write_all(format!("{} {}\n", self.format_time(), text).as_bytes())
+        {
             Ok(_) => (),
             Err(e) => return Err(format!("Handle me: {}", e).into()),
         };
@@ -42,7 +42,7 @@ impl History {
 
     pub fn read_last(
         &self,
-        last: usize
+        last: usize,
     ) -> Result<Vec<String>, Box<dyn Error>> {
         Ok(fs::read_to_string(&self.histfile)?
             .lines()
@@ -74,9 +74,9 @@ impl History {
             Err(e) => match e.kind() {
                 // Is it bad design to ignore this? I'm not sure
                 ErrorKind::NotFound => Ok(()),
-                _ => Err(
-                    format!("Unable to delete history file: {}", e).into()
-                ),
+                _ => {
+                    Err(format!("Unable to delete history file: {}", e).into())
+                }
             },
         }
     }
@@ -95,7 +95,7 @@ pub fn delete_history_file() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     // use super::*;
-    
+
     #[test]
     fn todo() {
         assert!(true);

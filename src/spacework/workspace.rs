@@ -5,27 +5,30 @@ use crate::spacework::history;
 use std::env::{self, VarError};
 use std::error::Error;
 use std::fs::{self, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::str;
-use std::io::Write;
 
 pub struct Workspace;
 
 impl Workspace {
     pub fn create(
         proj_name: &str,
-        lang: &str
+        lang: &str,
     ) -> Result<PathBuf, Box<dyn Error>> {
         let langfile = LanguageFile::from_language(lang)?;
 
         let workspace_root = workspace_dir()?;
         if !workspace_root.exists() {
             fs::create_dir_all(&workspace_root)?;
-            println!("{}", history::write(&format!(
-                "Created `spacework` directory: {}",
-                &workspace_root.display())
-            )?);
+            println!(
+                "{}",
+                history::write(&format!(
+                    "Created `spacework` directory: {}",
+                    &workspace_root.display()
+                ))?
+            );
         }
 
         let proj_dir = create_proj_dir(&workspace_root, proj_name, &langfile)?;
@@ -34,7 +37,7 @@ impl Workspace {
 
         let (src_dir, _) = create_subdirs(&proj_dir)?;
         create_src_file(&src_dir, &langfile)?;
-        
+
         Ok(proj_dir)
     }
 
@@ -57,34 +60,33 @@ impl Workspace {
 }
 
 fn create_proj_dir(
-    workspace_root: &PathBuf,
+    workspace_root: &Path,
     proj_name: &str,
     langfile: &LanguageFile,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let proj_dir = workspace_root
-        .join(&langfile.workspace.dir)
-        .join(proj_name);
-    if proj_dir.exists() {
-        return Err("Project directory already exists".into());
-    }
-    fs::create_dir_all(&proj_dir)?;
-    println!("Created project directory: {}", &proj_dir.display());
+    let proj_dir =
+        workspace_root.join(&langfile.workspace.dir).join(proj_name);
 
-    Ok(proj_dir)
+    if proj_dir.exists() {
+        Err("Project directory already exists".into())
+    } else {
+        fs::create_dir_all(&proj_dir)?;
+        println!("Created project directory: {}", &proj_dir.display());
+
+        Ok(proj_dir)
+    }
 }
 
 fn create_src_file(
-    src_dir: &PathBuf,
-    langfile: &LanguageFile
+    src_dir: &Path,
+    langfile: &LanguageFile,
 ) -> Result<(), Box<dyn Error>> {
-    File::create(src_dir.join(&langfile.workspace.src))?
-        .write_all(langfile.template()?.as_bytes())?;
-
-    Ok(())
+    Ok(File::create(src_dir.join(&langfile.workspace.src))?
+        .write_all(langfile.template()?.as_bytes())?)
 }
 
 fn create_subdirs(
-    proj_dir: &PathBuf
+    proj_dir: &Path,
 ) -> Result<(PathBuf, PathBuf), Box<dyn Error>> {
     let src_dir = proj_dir.join("src");
     fs::create_dir_all(&src_dir)?;
@@ -110,12 +112,12 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
     let home_dir = match env::var("HOME") {
         Ok(home) => home,
         Err(e) => match e {
-            VarError::NotPresent => return Err(
-                "HOME environment variable not found. \
-                    Unable to create workspace"
-            ),
+            VarError::NotPresent => {
+                return Err("HOME environment variable not found. \
+                    Unable to create workspace")
+            }
             VarError::NotUnicode(_) => return Err(
-                "Unable to parse HOME environment variable: Invalid unicode"
+                "Unable to parse HOME environment variable: Invalid unicode",
             ),
         },
     };
@@ -132,7 +134,7 @@ pub fn delete_workspace() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     #[should_panic]
     fn cfg_not_found_in_non_workspace_dir() {
@@ -151,13 +153,13 @@ mod tests {
 
         Ok(())
     }
-    
+
     #[test]
     fn detects_inside_workspace_dir() -> Result<(), Box<dyn Error>> {
         assert!(!is_inside_workspace(&env::temp_dir())?);
 
         assert!(is_inside_workspace(&workspace_dir()?)?);
-        
+
         Ok(())
     }
 }
