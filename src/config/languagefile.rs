@@ -1,4 +1,6 @@
 use serde::Deserialize;
+
+use std::collections::HashMap;
 use std::error::Error;
 use std::process::{Command, Output};
 use std::str;
@@ -35,28 +37,17 @@ pub struct Cmd {
     pub run: String,
 }
 
-const TOML: [&str; 3] = [
-    include_str!("../../langs/example.toml"),
-    include_str!("../../langs/cpp.toml"),
+const LANGFILES: [&str; 2] = [
     include_str!("../../langs/c.toml"),
+    include_str!("../../langs/cpp.toml"),
 ];
 
-const TEMPLATES: [&str; 2] =
-    ["main.cpp", include_str!("../../langs/templates/main.cpp")];
+const TEMPLATES: [&str; 2] = [
+    include_str!("../../langs/templates/main.c"),
+    include_str!("../../langs/templates/main.cpp"),
+];
 
 impl LanguageFile {
-    // TODO:
-    // Make this less terrible D:
-    pub fn template(&self) -> Result<&'static str, Box<dyn Error>> {
-        for (idx, template) in TEMPLATES.iter().enumerate() {
-            if template == &self.workspace.src {
-                return Ok(TEMPLATES[idx + 1]);
-            }
-        }
-
-        Err("Unable to find matching template file.".into())
-    }
-
     pub fn from_language(lang_name: &str) -> Result<Self, Box<dyn Error>> {
         let lang_name = lang_name.to_lowercase();
         let langfiles: Vec<LanguageFile> = Self::langfiles()?;
@@ -70,11 +61,26 @@ impl LanguageFile {
 
         Err(
             format!(
-                "Language file not found for `{}`. Check your spelling or consider creating one in your `spacework` directory.",
+                "Language file not found for `{}`. Check your spelling \
+                or consider creating one in your spacework directory.",
                 lang_name
             ).into()
         )
     }
+
+    pub fn template(&self) -> Result<&'static str, Box<dyn Error>> {
+        let templates: HashMap<String, &str> = [
+            ("main.c".to_string(), TEMPLATES[0]),
+            ("main.cpp".to_string(), TEMPLATES[1]),
+        ].iter().cloned().collect();
+
+        if let Some(v) = templates.get(&self.workspace.src) {
+            Ok(v)
+        } else {
+            Err("Unable to find matching template file.".into())
+        }
+    }
+
 
     pub fn build(&self) -> Result<Output, Box<dyn Error>> {
         let mut outfile = self.workspace.src.clone();
@@ -114,11 +120,18 @@ impl LanguageFile {
     }
 
     fn langfiles() -> Result<Vec<LanguageFile>, Box<dyn Error>> {
+/*
+        // I have absolutely zero idea how to do this without
+        // calling `unwrap` directly :c
+        Ok(LANGFILES
+            .iter()
+            .map(|file| toml::from_str(file).unwrap())
+            .collect())
+*/
         let mut langfiles = Vec::new();
-        for langfile in TOML {
+        for langfile in LANGFILES.iter() {
             langfiles.push(toml::from_str(langfile)?);
         }
-
         Ok(langfiles)
     }
 

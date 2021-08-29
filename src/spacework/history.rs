@@ -13,8 +13,8 @@ pub struct History {
 
 impl History {
     pub fn new() -> Result<Self, Box<dyn Error>> {
-        let histfile =
-            Path::new(&env::var("HOME")?).join(".spacework_history");
+        let histfile = Path::new(&env::var("HOME")?)
+            .join(".spacework_history");
 
         Ok(History { histfile })
     }
@@ -24,14 +24,15 @@ impl History {
             self.create_history_file()?;
         }
 
-        let mut file =
-            match OpenOptions::new().append(true).open(&self.histfile) {
+        let mut file = match OpenOptions::new()
+            .append(true)
+            .open(&self.histfile) {
                 Ok(file) => file,
                 Err(e) => return Err(format!("Handle me: {}", e).into()),
-            };
+        };
 
         match file
-            .write_all(format!("{} {}\n", self.format_time(), text).as_bytes())
+            .write_all(format!("{} {}\n", self.timestamp(), text).as_bytes())
         {
             Ok(_) => (),
             Err(e) => return Err(format!("Handle me: {}", e).into()),
@@ -56,7 +57,7 @@ impl History {
         Ok(fs::read_to_string(&self.histfile)?)
     }
 
-    fn format_time(&self) -> String {
+    fn timestamp(&self) -> String {
         Local::now().format("%Y-%m-%d@%X: ").to_string()
     }
 

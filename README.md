@@ -1,6 +1,6 @@
 # `spacework` - a workspace manager
 
-# Warning: This project is nowhere near complete
+## Warning: This project is nowhere near complete
 
 `spacework` is hoping to become a simple workspace manager similar to `cargo`
 without the dependency management. It will mostly help organize directories and

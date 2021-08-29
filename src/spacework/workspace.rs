@@ -41,7 +41,7 @@ impl Workspace {
         Ok(proj_dir)
     }
 
-    pub fn from_options(
+    pub fn create_from_options(
         proj_name: Option<&str>,
         lang: Option<&str>,
     ) -> Result<PathBuf, Box<dyn Error>> {
