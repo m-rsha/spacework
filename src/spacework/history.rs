@@ -1,4 +1,4 @@
-use std::env;
+use std::env::{self, VarError};
 use std::error::Error;
 use std::fs::{self, File, OpenOptions};
 use std::io::{ErrorKind, Write};
@@ -12,9 +12,22 @@ pub struct History {
 }
 
 impl History {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        let histfile = Path::new(&env::var("HOME")?)
-            .join(".spacework_history");
+    pub fn new() -> Result<Self, &'static str> {
+        let home_dir = match env::var("HOME") {
+            Ok(home) => home,
+            Err(e) => match e {
+                VarError::NotPresent => return Err(
+                    "HOME environment variable not found. \
+                    Unable to find or create history file."
+                ),
+                VarError::NotUnicode(_) => return Err(
+                    "Unable to parse HOME environment variable: \
+                    Invalid unicode"
+                ),
+            },
+        };
+
+        let histfile = Path::new(&home_dir).join(".spacework_history");
 
         Ok(History { histfile })
     }
@@ -23,22 +36,24 @@ impl History {
         if !self.histfile.exists() {
             self.create_history_file()?;
         }
-
+        
         let mut file = match OpenOptions::new()
             .append(true)
             .open(&self.histfile) {
-                Ok(file) => file,
-                Err(e) => return Err(format!("Handle me: {}", e).into()),
+            Ok(file) => file,
+            Err(e) => return Err(
+                format!("Unable to open history file: {}", e).into()
+            ),
         };
 
-        match file
-            .write_all(format!("{} {}\n", self.timestamp(), text).as_bytes())
-        {
-            Ok(_) => (),
-            Err(e) => return Err(format!("Handle me: {}", e).into()),
-        };
-
-        Ok(text)
+        match file.write_all(
+            format!("{} {}\n", self.timestamp(), text).as_bytes()
+        ) {
+            Ok(_) => Ok(text),
+            Err(e) => Err(
+                format!("Unable to write to history file: {}", e).into()
+            ),
+        }
     }
 
     pub fn read_last(
@@ -62,11 +77,17 @@ impl History {
     }
 
     fn create_history_file(&self) -> Result<(), Box<dyn Error>> {
-        File::create(&self.histfile)?;
-        self.write("Hello hello, world!")?;
-        // println!("Created spacework history file: {}", &histfile.display());
-
-        Ok(())
+        match File::create(&self.histfile) {
+            Ok(_) => {
+                println!(
+                    "Created spacework history file: {}",
+                    &self.histfile.display()
+                );
+                self.write("Hello hello, world!")?;
+                Ok(())
+            },
+            Err(e) => Err(format!("Unable to create history file: {}", e).into())
+        }
     }
 
     fn delete_history_file(&self) -> Result<(), Box<dyn Error>> {
@@ -75,9 +96,9 @@ impl History {
             Err(e) => match e.kind() {
                 // Is it bad design to ignore this? I'm not sure
                 ErrorKind::NotFound => Ok(()),
-                _ => {
-                    Err(format!("Unable to delete history file: {}", e).into())
-                }
+                _ => Err(format!(
+                    "Unable to delete history file: {}", e).into()
+                ),
             },
         }
     }

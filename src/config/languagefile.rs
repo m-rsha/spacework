@@ -47,6 +47,11 @@ const TEMPLATES: [&str; 2] = [
     include_str!("../../langs/templates/main.cpp"),
 ];
 
+const TEMPLATE_SRC: [&str; 2] = [
+    "main.c",
+    "main.cpp",
+];
+
 impl LanguageFile {
     pub fn from_language(lang_name: &str) -> Result<Self, Box<dyn Error>> {
         let lang_name = lang_name.to_lowercase();
@@ -69,10 +74,11 @@ impl LanguageFile {
     }
 
     pub fn template(&self) -> Result<&'static str, Box<dyn Error>> {
-        let templates: HashMap<String, &str> = [
-            ("main.c".to_string(), TEMPLATES[0]),
-            ("main.cpp".to_string(), TEMPLATES[1]),
-        ].iter().cloned().collect();
+        let templates: HashMap<String, &str> = TEMPLATE_SRC
+            .iter()
+            .map(|e| e.to_string())
+            .zip(TEMPLATES)
+            .collect();
 
         if let Some(v) = templates.get(&self.workspace.src) {
             Ok(v)

@@ -5,7 +5,7 @@ use crate::spacework::history;
 use std::env::{self, VarError};
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::str;
@@ -25,7 +25,7 @@ impl Workspace {
             println!(
                 "{}",
                 history::write(&format!(
-                    "Created `spacework` directory: {}",
+                    "Created spacework directory: {}",
                     &workspace_root.display()
                 ))?
             );
@@ -112,10 +112,9 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
     let home_dir = match env::var("HOME") {
         Ok(home) => home,
         Err(e) => match e {
-            VarError::NotPresent => {
+            VarError::NotPresent =>
                 return Err("HOME environment variable not found. \
-                    Unable to create workspace")
-            }
+                    Unable to create workspace"),
             VarError::NotUnicode(_) => return Err(
                 "Unable to parse HOME environment variable: Invalid unicode",
             ),
@@ -126,9 +125,15 @@ pub fn workspace_dir() -> Result<PathBuf, &'static str> {
 }
 
 pub fn delete_workspace() -> Result<(), Box<dyn Error>> {
-    fs::remove_dir_all(&workspace_dir()?)?;
-
-    Ok(())
+    match fs::remove_dir_all(&workspace_dir()?) {
+        Ok(_) => Ok(()),
+        Err(e) => match e.kind() {
+            ErrorKind::NotFound => Ok(()),
+            _ => Err(format!(
+                "Unable to remove workspace directories: {}", e
+            ).into())
+        },
+    }
 }
 
 #[cfg(test)]
