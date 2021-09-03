@@ -1,6 +1,6 @@
 mod config;
 mod spacework;
-use spacework::history;
+use spacework::history::{self, History};
 use spacework::workspace::{self, Workspace};
 
 use config::cli::CliArg;
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     if let Some(opts) = opts.subcommand_matches("history") {
-        let history = history::History::new()?;
+        let history = History::new()?;
 
         if opts.is_present("all") {
             print!("{}", history.read_all()?);

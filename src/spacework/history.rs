@@ -12,50 +12,72 @@ pub struct History {
 }
 
 impl History {
-    pub fn new() -> Result<Self, &'static str> {
+    const HISTFILE: &'static str = ".spacework_history";
+
+    pub fn new() -> Result<Self, Box<dyn Error>> {
         let home_dir = match env::var("HOME") {
             Ok(home) => home,
             Err(e) => match e {
                 VarError::NotPresent => return Err(
                     "HOME environment variable not found. \
-                    Unable to find or create history file."
+                    Unable to find or create history file".into()
                 ),
                 VarError::NotUnicode(_) => return Err(
                     "Unable to parse HOME environment variable: \
-                    Invalid unicode"
+                    Invalid unicode".into()
                 ),
             },
         };
-
-        let histfile = Path::new(&home_dir).join(".spacework_history");
+        
+        let histfile = Path::new(&home_dir).join(Self::HISTFILE);
+        if !histfile.exists() {
+            Self::create_history_file(&histfile)?;
+        }
 
         Ok(History { histfile })
     }
 
     pub fn write<'a>(&self, text: &'a str) -> Result<&'a str, Box<dyn Error>> {
-        if !self.histfile.exists() {
-            self.create_history_file()?;
-        }
-        
-        let mut file = match OpenOptions::new()
-            .append(true)
-            .open(&self.histfile) {
-            Ok(file) => file,
-            Err(e) => return Err(
-                format!("Unable to open history file: {}", e).into()
-            ),
-        };
-
-        match file.write_all(
-            format!("{} {}\n", self.timestamp(), text).as_bytes()
-        ) {
+        match self
+            .file()?
+            .write_all(
+            format!("{} {}\n", self.timestamp(), text).as_bytes())
+        {
             Ok(_) => Ok(text),
             Err(e) => Err(
                 format!("Unable to write to history file: {}", e).into()
             ),
         }
     }
+    
+    fn create_history_file(filepath: &Path) -> Result<(), Box<dyn Error>> {
+        match File::create(filepath) {
+            Ok(_) => {
+                Self::write(
+                    &Self{ histfile: filepath.into() }, 
+                    "Hello hello, world!",
+                )?;
+                println!(
+                    "Created spacework history file: {}",
+                    filepath.display()
+                );
+                Ok(())
+            },
+            Err(e) => Err(
+                format!("Unable to create history file: {}", e).into()
+            ),
+        }
+    }
 
+    pub fn file(&self) -> Result<File, Box<dyn Error>> {
+        match OpenOptions::new().append(true).open(&self.histfile) {
+            Ok(file) => Ok(file),
+            Err(e) => return Err(
+                format!("Unable to open history file: {}", e).into()
+            ),
+        }
+    }
+    
     pub fn read_last(
         &self,
         last: usize,
@@ -76,20 +98,6 @@ impl History {
         Local::now().format("%Y-%m-%d@%X: ").to_string()
     }
 
-    fn create_history_file(&self) -> Result<(), Box<dyn Error>> {
-        match File::create(&self.histfile) {
-            Ok(_) => {
-                println!(
-                    "Created spacework history file: {}",
-                    &self.histfile.display()
-                );
-                self.write("Hello hello, world!")?;
-                Ok(())
-            },
-            Err(e) => Err(format!("Unable to create history file: {}", e).into())
-        }
-    }
-
     fn delete_history_file(&self) -> Result<(), Box<dyn Error>> {
         match fs::remove_file(&self.histfile) {
             Ok(_) => Ok(()),
@@ -102,12 +110,6 @@ impl History {
             },
         }
     }
-}
-
-pub fn write(text: &str) -> Result<&str, Box<dyn Error>> {
-    let history = History::new()?;
-
-    history.write(text)
 }
 
 pub fn delete_history_file() -> Result<(), Box<dyn Error>> {

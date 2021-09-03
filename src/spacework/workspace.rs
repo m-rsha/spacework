@@ -1,6 +1,6 @@
 use crate::config::languagefile::LanguageFile;
 use crate::config::spaceworkfile::SpaceworkFile;
-use crate::spacework::history;
+use crate::spacework::history::History;
 
 use std::env::{self, VarError};
 use std::error::Error;
@@ -19,16 +19,13 @@ impl Workspace {
     ) -> Result<PathBuf, Box<dyn Error>> {
         let langfile = LanguageFile::from_language(lang)?;
 
+        let history = History::new()?;
         let workspace_root = workspace_dir()?;
         if !workspace_root.exists() {
             fs::create_dir_all(&workspace_root)?;
-            println!(
-                "{}",
-                history::write(&format!(
-                    "Created spacework directory: {}",
-                    &workspace_root.display()
-                ))?
-            );
+            history.write(&format!(
+                "Created spacework directory: {}", &workspace_root.display()
+            ))?;
         }
 
         let proj_dir = create_proj_dir(&workspace_root, proj_name, &langfile)?;
@@ -70,8 +67,11 @@ fn create_proj_dir(
     if proj_dir.exists() {
         Err("Project directory already exists".into())
     } else {
+        let history = History::new()?;
         fs::create_dir_all(&proj_dir)?;
-        println!("Created project directory: {}", &proj_dir.display());
+        history.write(&format!(
+            "Created project directory: {}", &proj_dir.display())
+        )?;
 
         Ok(proj_dir)
     }
